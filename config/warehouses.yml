@@ -1,7 +1,6 @@
 warehouses:
   ingestion:
     auto_suspend: 60
-    max_cluster_count: 10
     roles:
       ingestion: 
         - usage
