@@ -14,8 +14,8 @@ on:
         type: choice
         description: Re-run all grants
         options: 
-        - 'false'
-        - 'true'
+        - false
+        - true
         required: true
         default: 'false'
       logDebug:
@@ -29,47 +29,43 @@ on:
   workflow_call:
     inputs:
       targetEnvironment:
-        required: false
+        required: true
         type: string
         default: dev
       alwaysApplyGrants:
-        required: false
+        required: true
         type: string
-        default: 'false'
+        default: false
       logDebug:
-        required: false
+        required: true
         type: string
-        default: 'OFF'
+        default: OFF
 
 jobs:
   Plan:
     name: Plan Terraform
     runs-on: ubuntu-latest
-    environment: ${{ inputs.targetEnvironment || github.event.inputs.targetEnvironment || 'dev' }}
+    environment: ${{ github.event.inputs.targetEnvironment }}
     defaults:
       run:
         shell: bash
         working-directory: ./
     concurrency: infra-plan
     permissions:
-      contents: read
+      contents: read # required to checkout the code from the repo
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Set terraform environment variables
       run: |
-        # Fallback between workflow_call (inputs) and workflow_dispatch (github.event.inputs)
-        TARGET_ENV="${{ inputs.targetEnvironment || github.event.inputs.targetEnvironment || 'dev' }}"
-        LOG_DEBUG="${{ inputs.logDebug || github.event.inputs.logDebug || 'OFF' }}"
-        
-        echo "TF_LOG=$LOG_DEBUG" >> $GITHUB_ENV
+        # ALL ENVS
+        echo "TF_LOG=${{ github.event.inputs.logDebug }}" >> $GITHUB_ENV
         echo "BACKEND_ENCRYPT=true" >> $GITHUB_ENV
-        echo "ENVIRONMENT=$TARGET_ENV" >> $GITHUB_ENV
+        echo "ENVIRONMENT=${{ github.event.inputs.targetEnvironment }}" >> $GITHUB_ENV
         echo "SNOWFLAKE_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
         echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
-
     - name: configure aws credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -83,18 +79,14 @@ jobs:
       with:
         terraform_version: 1.12.2
         terraform_wrapper: false
-
     - name: Initialize Terraform
       run: |
         terraform init -backend-config="./backends/backend-$ENVIRONMENT.tfvars"
-
     - name: Format terraform
       run: terraform fmt -check
-
     - name: Validate terraform
       run: terraform validate
 
     - name: Plan terraform
       run: |
-        ALWAYS_APPLY="${{ inputs.alwaysApplyGrants || github.event.inputs.alwaysApplyGrants || 'false' }}"
-        terraform plan --var-file="./environments/$ENVIRONMENT.tfvars" -var "always_apply=$ALWAYS_APPLY" -out=./output.tfplan
+        terraform plan --var-file=./environments/$ENVIRONMENT.tfvars -var always_apply=${{ github.event.inputs.alwaysApplyGrants }} -out=./output.tfplan
