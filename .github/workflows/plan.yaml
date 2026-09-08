@@ -98,3 +98,4 @@ jobs:
       run: |
         ALWAYS_APPLY="${{ inputs.alwaysApplyGrants || github.event.inputs.alwaysApplyGrants || 'false' }}"
         terraform plan --var-file="./environments/$ENVIRONMENT.tfvars" -var "always_apply=$ALWAYS_APPLY" -out=./output.tfplan
+    #Comment
