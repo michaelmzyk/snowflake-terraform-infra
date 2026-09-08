@@ -3,15 +3,4 @@ databases:
     roles:
       - r
       - rw
-  # bronze:
-  #   roles:
-  #     - r
-  #     - rw
-  # silver:
-  #   roles:
-  #     - r
-  #     - rw
-  # gold:
-  #   roles:
-  #     - r
-  #     - rw
+  # test2 
